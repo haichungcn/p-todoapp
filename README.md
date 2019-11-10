@@ -1,14 +1,14 @@
 # CoderSchool FTW - * Python To-Do App *
 
 Created with love by: `Hai Chung`
-
+  
+View online at: `here`
+  
 One or two sentence summary of your project. 
 
-## Video Walkthrough
+## ERD DATA CHART:
 
-Here's a walkthrough of implemented user stories.
-
-https://imgur.com/TTNad2I
+<img src='https://i.imgur.com/TTNad2I.png' title='ERD Chart' width='' alt='ERD Chart' />
 
 ## User Stories
 
