@@ -168,17 +168,25 @@ def list_task(user_input, currentUser):
         cur.execute(sql_list, (currentUser[0],))
         result = cur.fetchall()
 
-    # display all to-dos assigned or created by a user:
+    # display all to-dos assigned to a user:
     elif '-user' in user_input:
-        print(colored('> Which user id do you want to see ? ', 'cyan', attrs=['bold', 'blink']), end = '» ')
-        assigned_user = input()
+        user_list = list_user("-a", currentUser)    
+        while True:
+            print(colored('> Which user do you want to see their assigned tasks ? ', 'cyan', attrs=['bold', 'blink']), end = '» ')
+            assigned_user = int(input())
+            if assigned_user in user_list:
+                print("\n", colored("[√]", 'red', attrs=['bold']), colored(f" got it, user#{assigned_user}", 'cyan'))
+                break
+            else:
+                print('\n', colored("> You didn't enter any user id has been listed, plz try again.", "cyan", attrs=['bold']), '\n')
         sql_list = f"""
-            SELECT *
+            SELECT todos.id, body, status, due_date, project_id, creator_id, user_name, todos.timestamp
                 FROM todos
+                LEFT JOIN users ON todos.assigned_id = users.id
                 WHERE status != "removed"
                 AND creator_id = ?
                 AND assigned_id = {assigned_user}
-                ORDER BY id DESC
+                ORDER BY todos.id DESC
             """
         cur.execute(sql_list, (currentUser[0],))
         result = cur.fetchall()
@@ -256,15 +264,19 @@ def list_task(user_input, currentUser):
                 colored('Due Date', 'blue', attrs=['bold']),
                 colored('Project Id', 'green', attrs=['bold']),
                 colored('Creator Id', 'magenta', attrs=['bold']),
-                colored('Assigned Id', 'yellow', attrs=['bold']),
+                colored('Assigned To', 'yellow', attrs=['bold']),
                 colored('Timestamp', 'green', attrs=['bold'])
             ],
             tablefmt='psql')
         )
+        # taking out all the id
+        id_list = []
+        for i in result: id_list.append(i[0])
+        return(id_list)
     else:
         print('\n', colored("> You don't have any task yet, please start by creating one", "cyan", attrs=['bold']))
 
-    print('\n',colored("[√]", 'red', attrs=['bold']), colored(" finished listing", 'cyan'))
+    print('\n', colored("[√]", 'red', attrs=['bold']), colored(" finished listing", 'cyan'))
 
 def mark_task(user_input, currentUser):
     if "-u" in user_input or "-d" in user_input:
@@ -306,10 +318,13 @@ def remove_task(currentUser):
     print("\n", colored("[√]", 'red', attrs=['bold']), colored(f" removed task: #{taskId}", 'cyan'))
 
 def get_task_name(currentUser, flag = '-a'):
-    list_task(flag, currentUser)
-    print(colored('> What is the id of the task ? ', 'red', attrs=['bold', 'blink']), end = '» ')
-    task = input()
-    return task
+    while True:
+        taskId = list_task(flag, currentUser)
+        print(colored('> What is the id of the task ? ', 'red', attrs=['bold', 'blink']), end = '» ')
+        task = int(input())
+        if task in taskId:
+            return task
+            break
 
 def edit_task(currentUser):
     taskId = get_task_name(currentUser, '-c')
@@ -340,7 +355,6 @@ def edit_task(currentUser):
                     WHERE id = {taskId}
                         AND creator_id = ?
                 """
-        print('sdfsdfsdfsdfsdfsdf', content, due_date, project_id, user_id, sql_edit, taskId, currentUser[0])
         cur.execute(sql_edit,(currentUser[0],))
         conn.commit()
 
@@ -400,6 +414,10 @@ def list_user(user_input, currentUser):
                 tablefmt='psql')
             )
         print('\n',colored("[√]", 'red', attrs=['bold']), colored(" finished listing", 'cyan'))
+        # taking out all the id
+        id_list = []
+        for i in result: id_list.append(i[0])
+        return id_list
     else:
         print('\n', colored("> You didn't enter any flag, please type 'user' followed by a tag ('-i' or '-a')", "cyan", attrs=['bold']))
 
@@ -487,34 +505,151 @@ def list_history(currentUser):
     )
     print('\n',colored("[√]", 'red', attrs=['bold']), colored(" finished listing", 'cyan'))
 
-def list_projects(currentUser, flag = '-u'):
+def list_projects(currentUser, flag = '-c'):
     if '-u' in flag:
         sql_list_proj = """
-        SELECT * FROM projects
-            JOIN project_users
+        SELECT projects.id,
+            project_name,
+            status,
+            creator_id,
+            user_name
+            FROM projects
+            LEFT JOIN project_users
                 ON project_users.project_id = projects.id
+            LEFT JOIN users
+                ON project_users.assigned_id = users.id
             WHERE project_users.user_id = ?
                 OR projects.creator_id = ?
         """
         cur.execute(sql_list_proj, (currentUser[0],currentUser[0],))
-    if "-c" in flag:
+        result = cur.fetchall()
+        print('\n', colored("These are projects that either assigned to you or created by you:","cyan"))
+        print(tabulate(result,headers=[
+                colored('Id', 'yellow', attrs=['bold']),
+                colored('Project Name', 'red', attrs=['bold']),
+                colored('Status', 'blue', attrs=['bold']),
+                colored('Creator Id', 'green', attrs=['bold']),
+                colored('Assigned To', 'cyan', attrs=['bold'])
+            ],
+            tablefmt='psql')
+        )
+    elif "-a" in flag:
+        sql_list_proj = """
+        SELECT projects.id,
+            project_name,
+            status,
+            creator_id,
+            user_id
+            FROM projects
+            LEFT JOIN project_users
+                ON project_users.project_id = projects.id
+            WHERE project_users.user_id = ?
+        """
+        cur.execute(sql_list_proj, (currentUser[0],))
+        result = cur.fetchall()
+        print('\n', colored("These projects are assigned to you:","cyan"))
+        print(tabulate(result,headers=[
+                colored('Id', 'yellow', attrs=['bold']),
+                colored('Project Name', 'red', attrs=['bold']),
+                colored('Status', 'blue', attrs=['bold']),
+                colored('Creator Id', 'green', attrs=['bold']),
+                colored('Assigned To', 'cyan', attrs=['bold'])
+            ],
+            tablefmt='psql')
+        )
+    elif "-c" in flag:
         sql_list_proj = """
             SELECT * FROM projects
                 WHERE creator_id = ?
         """
         cur.execute(sql_list_proj, (currentUser[0],))
-    result = cur.fetchall()
-    print('\n', colored("Your created projects:","cyan"))
-    print(tabulate(result,headers=[
-            colored('Id', 'yellow', attrs=['bold']),
-            colored('Project Name', 'red', attrs=['bold']),
-            colored('Status', 'blue', attrs=['bold']),
-            colored('Creator Id', 'green', attrs=['bold']),
-            colored('Timestamp', 'cyan', attrs=['bold'])
-        ],
-        tablefmt='psql')
-    )
+        result = cur.fetchall()
+        print('\n', colored("Your created projects:","cyan"))
+        print(tabulate(result,headers=[
+                colored('Id', 'yellow', attrs=['bold']),
+                colored('Project Name', 'red', attrs=['bold']),
+                colored('Status', 'blue', attrs=['bold']),
+                colored('Creator Id', 'green', attrs=['bold']),
+                colored('Timestamp', 'cyan', attrs=['bold'])
+            ],
+            tablefmt='psql')
+        )
+    # taking out all the id
+    id_list = []
+    for i in result: id_list.append(i[0])
     print('\n',colored("[√]", 'red', attrs=['bold']), colored(" finished listing", 'cyan'))
+    return(id_list)
+
+def assign_projects(currentUser):
+    sql_assign = """
+        INSERT INTO project_users (
+            project_id,
+            user_id
+        ) VALUES (?, ?)
+    """
+    proj_list = list_projects(currentUser, "-c")
+    while True:
+        print(colored('> Which project do you want to assign ? ', 'cyan', attrs=['bold', 'blink']), end = '» ')
+        proj = int(input())
+        if proj in proj_list:
+            print("\n", colored("[√]", 'red', attrs=['bold']), colored(f" got it, project#{proj}", 'cyan'))
+            break
+        else:
+            print('\n', colored("> You didn't enter any project id has been listed, plz try again.", "cyan", attrs=['bold']), '\n')
+
+    user_list = list_user("-a", currentUser)    
+    while True:
+        print(colored('> Which user do you want to assign to ? ', 'cyan', attrs=['bold', 'blink']), end = '» ')
+        user = int(input())
+        if user in user_list:
+            print("\n", colored("[√]", 'red', attrs=['bold']), colored(f" got it, user#{user}", 'cyan'))
+            break
+        else:
+            print('\n', colored("> You didn't enter any user id has been listed, plz try again.", "cyan", attrs=['bold']), '\n')
+
+    if proj and user:
+        cur.execute(sql_assign, (str(proj), str(user),))
+        conn.commit()
+        print('\n',colored("[√]", 'red', attrs=['bold']), colored(f" successfully assigned project #{proj} to user #{user}", 'cyan'))
+        
+        # adding lastest action to history
+        history_push(f"assigned project#{proj} to user#{user}", "project_users", proj, currentUser[0])
+
+def mark_projects(currentUser):
+    sql_mark= """
+        UPDATE projects
+            SET status = ?
+        WHERE creator_id = ?
+        AND id = ?
+    """
+    proj_list = list_projects(currentUser, "-c")
+
+    while True:
+        print(colored('> Which project do you want to change status ? ', 'cyan', attrs=['bold', 'blink']), end = '» ')
+        proj = int(input())
+        if proj in proj_list:
+            break
+        else:
+            print(colored("""> You've entered a non-exist project number, plz try again """, 'cyan', attrs=['bold', 'blink']), '\n')
+    
+    status_list = [1,2]
+    while True:
+        print(colored('> Enter "1" if you want to mark the project "finished" or "2" otherwise ? ', 'cyan', attrs=['bold', 'blink']), end = '» ')
+        user_input = int(input())
+        if user_input in status_list:
+            if user_input == 1:
+                status = "finished"
+            else:
+                status = "unfinished"
+            break
+        else:
+            print(colored("""> You've entered a wrong command, plz try again """, 'cyan', attrs=['bold', 'blink']), '\n')
+
+    cur.execute(sql_mark, (status, currentUser[0], proj, ))
+    conn.commit()
+    print('\n',colored("[√]", 'red', attrs=['bold']), colored(f" successfully marked project #{proj} as {status}", 'cyan'))
+    history_push(f"marked project#{proj} as {status}", "projects", proj, currentUser[0])
+
 
 def who_to_fire():
     sql_list = """

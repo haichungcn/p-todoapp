@@ -1,20 +1,14 @@
 # CoderSchool FTW - * Python To-Do App *
 
 Created with love by: `Hai Chung`
-  
-View online at: `here`
-  
+
 One or two sentence summary of your project. 
 
 ## Video Walkthrough
 
 Here's a walkthrough of implemented user stories.
 
-To create a GIF, use [LiceCap](http://www.cockos.com/licecap/), [RecordIt](http://www.recordit.co), or [Loom](http://www.useloom.com), and link the image here in the markdown.
-
-```
-<img src='http://i.imgur.com/link/to/your/gif/file.gif' title='Video Walkthrough' width='' alt='Video Walkthrough' />
-```
+https://imgur.com/TTNad2I
 
 ## User Stories
 
@@ -47,6 +41,9 @@ The following **additional** features are implemented:
 
 * [x] User can see a history of all action has been made by him.
 * [x] User can assign projects that they created to other users
+* [x] User can see all projects assigned to him
+* [x] User can see all projects created by him
+* [x] User can mark a project created by him as finished or unfinished
 
 ## Time Spent and Lessons Learned
 

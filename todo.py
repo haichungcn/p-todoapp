@@ -10,7 +10,7 @@ import threading
 import re
 from setupDatabase import setup
 from tabulate import tabulate
-from commands import add_task, list_task, mark_task, remove_task, edit_task, create, list_user, checkUser, checkPassword, getUser, createUser, get_task_name, list_projects, list_history, who_to_fire
+from commands import add_task, list_task, mark_task, remove_task, edit_task, create, list_user, checkUser, checkPassword, getUser, createUser, get_task_name, list_projects, list_history, who_to_fire, assign_projects, mark_projects
 
 screenLock = threading.Lock()
 screenLock.acquire()
@@ -58,28 +58,33 @@ def print_menu():
     print(f"""
         
         ┌ {colored("1.", "yellow", attrs=['bold'])} To create new project/user: {colored("create", "red", attrs=['bold'])}
-        │                                ├ {colored("-u", "red", attrs=['bold'])} to create new user
-        │                                └ {colored("-p", "red", attrs=['bold'])} to create new project
+        │                                   ├ {colored("-u", "cyan", attrs=['bold'])} to create new user
+        │                                   └ {colored("-p", "cyan", attrs=['bold'])} to create new project
         ├ {colored("2.", "yellow", attrs=['bold'])} To display to-dos/projects : {colored("list", "red", attrs=['bold'])}    
-        │                                ├ {colored("-a", "red", attrs=['bold'])} to display all
-        │                                ├ {colored("-c", "red", attrs=['bold'])} to display all created by you                                             
-        │                                ├ {colored("-u", "red", attrs=['bold'])} to display all undone
-        │                                ├ {colored("-d", "red", attrs=['bold'])} to display all done
-        │                                ├ {colored("-user", "red", attrs=['bold'])} to display all assigned to a user
-        │                                └ {colored("-p", "red", attrs=['bold'])} to display all tasks in a project
+        │                                  ├ {colored("-a", "cyan", attrs=['bold'])} to display all
+        │                                  ├ {colored("-c", "cyan", attrs=['bold'])} to display all created by you                                             
+        │                                  ├ {colored("-u", "cyan", attrs=['bold'])} to display all undone
+        │                                  ├ {colored("-d", "cyan", attrs=['bold'])} to display all done
+        │                                  ├ {colored("-user", "cyan", attrs=['bold'])} to display all assigned to a user
+        │                                  └ {colored("-p", "cyan", attrs=['bold'])} to display all tasks in a project
         ├ {colored("3.", "yellow", attrs=['bold'])} To add new task: {colored("add", "red", attrs=['bold'])}                 
         ├ {colored("4.", "yellow", attrs=['bold'])} To change a task's status: {colored("mark", "red", attrs=['bold'])}      
-        │                                ├ {colored("-u", "red", attrs=['bold'])} to mark it as undone
-        │                                └ {colored("-d", "red", attrs=['bold'])} to mark it as done
+        │                                 ├ {colored("-u", "cyan", attrs=['bold'])} to mark it as undone
+        │                                 └ {colored("-d", "cyan", attrs=['bold'])} to mark it as done
         ├ {colored("5.", "yellow", attrs=['bold'])} To remove task: {colored("remove", "red", attrs=['bold'])}               
         ├ {colored("6.", "yellow", attrs=['bold'])} To edit task: {colored("edit", "red", attrs=['bold'])}                   
         ├ {colored("7.", "yellow", attrs=['bold'])} To display user: {colored("user", "red", attrs=['bold'])}   
-        │                    ├ {colored("-a", "red", attrs=['bold'])} to see all registered users 
-        │                    └ {colored("-i", "red", attrs=['bold'])} to see your user info
+        │                      ├ {colored("-a", "cyan", attrs=['bold'])} to see all registered users 
+        │                      └ {colored("-i", "cyan", attrs=['bold'])} to see your user info
         ├ {colored("8.", "yellow", attrs=['bold'])} To display projects: {colored("project", "red", attrs=['bold'])} or {colored("proj", "red", attrs=['bold'])}
-        ├ {colored("9.", "yellow", attrs=['bold'])} To display history: {colored("history", "red", attrs=['bold'])}
-        ├ {colored("10.", "yellow", attrs=['bold'])} To see who hasn't been assigned to any task: {colored("who-to-fire", "red", attrs=['bold'])}                 
-        └ {colored("11.", "yellow", attrs=['bold'])} To exit: {colored("exit", "red", attrs=['bold'])}                        
+        │                                      ├ {colored("-u", "cyan", attrs=['bold'])} to display all projects related to you
+        │                                      ├ {colored("-a", "cyan", attrs=['bold'])} to display all projects assigned to you
+        │                                      └ {colored("-c", "cyan", attrs=['bold'])} to display all projects created by you
+        ├ {colored("9.", "yellow", attrs=['bold'])} To assign projects: {colored("assign", "red", attrs=['bold'])}
+        ├ {colored("10.", "yellow", attrs=['bold'])} To change a project status: {colored("finish", "red", attrs=['bold'])}
+        ├ {colored("11.", "yellow", attrs=['bold'])} To display history: {colored("history", "red", attrs=['bold'])}
+        ├ {colored("12.", "yellow", attrs=['bold'])} To see who hasn't been assigned to any task: {colored("who-to-fire", "red", attrs=['bold'])}                 
+        └ {colored("13.", "yellow", attrs=['bold'])} To exit: {colored("exit", "red", attrs=['bold'])}                        
     """)
 
 class messages:
@@ -113,7 +118,11 @@ def handle_input():
     elif 'user' in user_input:
         list_user(user_input, currentUser)
     elif 'project' in user_input or "proj" in user_input:
-        list_projects(currentUser)
+        list_projects(currentUser, user_input)
+    elif 'assign' in user_input:
+        assign_projects(currentUser)
+    elif 'finish' in user_input:
+        mark_projects(currentUser)
     elif 'history' in user_input:
         list_history(currentUser)
     elif 'who-to-fire' in user_input:
